@@ -17,16 +17,16 @@ public class MovieController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<MovieListModel>>> GetMovies(
-     [FromQuery] string searchString,
-     [FromQuery] int? releaseYear,
-     [FromQuery] double? minRating,
-     [FromQuery] double? maxRating,
-     [FromQuery] string genre,
-     [FromQuery] string country,
-     [FromQuery] string language,
-     [FromQuery] string name,
-     [FromQuery] int page = 1,
-     [FromQuery] int pageSize = 10)
+        [FromQuery] string searchString,
+        [FromQuery] int? releaseYear,
+        [FromQuery] double? minRating,
+        [FromQuery] double? maxRating,
+        [FromQuery] string genre,
+        [FromQuery] string country,
+        [FromQuery] string language,
+        [FromQuery] string name,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
         IQueryable<MovieListModel> query = _context.Movies;
 
@@ -34,11 +34,11 @@ public class MovieController : ControllerBase
         if (!string.IsNullOrEmpty(searchString))
         {
             query = query.Where(m =>
-                m.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                m.Description.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                m.Genre.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                m.Country.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                m.Language.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+                EF.Functions.Like(m.Name, $"%{searchString}%") ||
+                EF.Functions.Like(m.Description, $"%{searchString}%") ||
+                EF.Functions.Like(m.Genre, $"%{searchString}%") ||
+                EF.Functions.Like(m.Country, $"%{searchString}%") ||
+                EF.Functions.Like(m.Language, $"%{searchString}%")
             );
         }
 
@@ -62,25 +62,25 @@ public class MovieController : ControllerBase
         // Filter by genre
         if (!string.IsNullOrEmpty(genre))
         {
-            query = query.Where(m => m.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(m => EF.Functions.Like(m.Genre, $"%{genre}%"));
         }
 
         // Filter by country
         if (!string.IsNullOrEmpty(country))
         {
-            query = query.Where(m => m.Country.Contains(country, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(m => EF.Functions.Like(m.Country, $"%{country}%"));
         }
 
         // Filter by language
         if (!string.IsNullOrEmpty(language))
         {
-            query = query.Where(m => m.Language.Contains(language, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(m => EF.Functions.Like(m.Language, $"%{language}%"));
         }
 
         // Filter by name
         if (!string.IsNullOrEmpty(name))
         {
-            query = query.Where(m => m.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(m => EF.Functions.Like(m.Name, $"%{name}%"));
         }
 
         // Paginate the result
@@ -116,5 +116,29 @@ public class MovieController : ControllerBase
 
         return movies;
     }
+
+
+
+    [HttpGet("all")]
+    public async Task<ActionResult<IEnumerable<MovieListModel>>> GetAllMovies()
+    {
+        var movies = await _context.Movies.ToListAsync();
+        return movies;
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<MovieListModel>> GetMovieById(int id)
+    {
+        var movie = await _context.Movies.FindAsync(id);
+
+        if (movie == null)
+        {
+            return NotFound();
+        }
+
+        return movie;
+    }
+
+
 
 }
