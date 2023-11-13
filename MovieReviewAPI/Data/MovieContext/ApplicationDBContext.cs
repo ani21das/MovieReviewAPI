@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MovieReviewAPI.Models;
+using MovieReviewAPI.Models.MovieList;
 
-namespace MovieReviewAPI.Data
+namespace MovieReviewAPI.Data.MovieContext
 {
     public class ApplicationDBContext : DbContext
     {
@@ -11,8 +11,7 @@ namespace MovieReviewAPI.Data
 
         public DbSet<MovieListModel> Movies { get; set; }
 
-        // MovieDbContext.cs
-        // MovieDbContext.cs
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<MovieListModel>().HasData(

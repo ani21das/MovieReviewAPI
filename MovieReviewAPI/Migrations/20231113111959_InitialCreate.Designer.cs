@@ -11,8 +11,8 @@ using MovieReviewAPI.Data.MovieContext;
 namespace MovieReviewAPI.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20231110123023_initMovie")]
-    partial class initMovie
+    [Migration("20231113111959_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,7 +24,7 @@ namespace MovieReviewAPI.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("MovieReviewAPI.Models.MovieListModel", b =>
+            modelBuilder.Entity("MovieReviewAPI.Models.MovieList.MovieListModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
