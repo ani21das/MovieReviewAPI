@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MovieReviewAPI.Data;
+using MovieReviewAPI.Data.MovieContext;
 
 #nullable disable
 
@@ -21,7 +21,7 @@ namespace MovieReviewAPI.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("MovieReviewAPI.Models.MovieListModel", b =>
+            modelBuilder.Entity("MovieReviewAPI.Models.MovieList.MovieListModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

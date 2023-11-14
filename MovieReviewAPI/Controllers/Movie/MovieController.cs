@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MovieReviewAPI.Data;
-using MovieReviewAPI.Models;
+using MovieReviewAPI.Data.MovieContext;
+using MovieReviewAPI.Models.MovieList;
 using Newtonsoft.Json;
 
 [Route("api/movies")]
 [ApiController]
+[Authorize]
 public class MovieController : ControllerBase
 {
     private readonly ApplicationDBContext _context;
@@ -139,6 +141,60 @@ public class MovieController : ControllerBase
         return movie;
     }
 
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<MovieListModel>> CreateMovie([FromBody] MovieListModel newMovie)
+    {
+        _context.Movies.Add(newMovie);
+        await _context.SaveChangesAsync();
 
+        return CreatedAtAction(nameof(GetMovieById), new { id = newMovie.Id }, newMovie);
+    }
 
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateMovie(int id, [FromBody] MovieListModel updatedMovie)
+    {
+        if (id != updatedMovie.Id)
+        {
+            return BadRequest();
+        }
+
+        _context.Entry(updatedMovie).State = EntityState.Modified;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!_context.Movies.Any(m => m.Id == id))
+            {
+                return NotFound();
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<MovieListModel>> DeleteMovie(int id)
+    {
+        var movie = await _context.Movies.FindAsync(id);
+
+        if (movie == null)
+        {
+            return NotFound();
+        }
+
+        _context.Movies.Remove(movie);
+        await _context.SaveChangesAsync();
+
+        return movie;
+    }
 }
