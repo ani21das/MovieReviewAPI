@@ -11,7 +11,6 @@ using Newtonsoft.Json;
 public class MovieController : ControllerBase
 {
     private readonly ApplicationDBContext _context;
-
     public MovieController(ApplicationDBContext context)
     {
         _context = context;
@@ -30,7 +29,7 @@ public class MovieController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        IQueryable<MovieListModel> query = _context.Movies;
+        IQueryable<MovieListModel> query = _context.Movies.Include(m => m.Reviews);
 
         // Filter by search string
         if (!string.IsNullOrEmpty(searchString))
@@ -44,13 +43,11 @@ public class MovieController : ControllerBase
             );
         }
 
-        // Filter by release year
         if (releaseYear.HasValue)
         {
             query = query.Where(m => m.ReleaseYear >= releaseYear.Value);
         }
 
-        // Filter by rating range
         if (minRating.HasValue)
         {
             query = query.Where(m => m.Rating >= minRating.Value);
@@ -61,31 +58,26 @@ public class MovieController : ControllerBase
             query = query.Where(m => m.Rating <= maxRating.Value);
         }
 
-        // Filter by genre
         if (!string.IsNullOrEmpty(genre))
         {
             query = query.Where(m => EF.Functions.Like(m.Genre, $"%{genre}%"));
         }
 
-        // Filter by country
         if (!string.IsNullOrEmpty(country))
         {
             query = query.Where(m => EF.Functions.Like(m.Country, $"%{country}%"));
         }
 
-        // Filter by language
         if (!string.IsNullOrEmpty(language))
         {
             query = query.Where(m => EF.Functions.Like(m.Language, $"%{language}%"));
         }
 
-        // Filter by name
         if (!string.IsNullOrEmpty(name))
         {
             query = query.Where(m => EF.Functions.Like(m.Name, $"%{name}%"));
         }
 
-        // Paginate the result
         var totalCount = await query.CountAsync();
         var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
@@ -113,12 +105,10 @@ public class MovieController : ControllerBase
             pageSize
         };
 
-        // Add pagination metadata to the response headers
         Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(paginationMetadata));
 
         return movies;
     }
-
 
 
     [HttpGet("all")]
@@ -131,7 +121,9 @@ public class MovieController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<MovieListModel>> GetMovieById(int id)
     {
-        var movie = await _context.Movies.FindAsync(id);
+        var movie = await _context.Movies.Include(m => m.Reviews).FirstOrDefaultAsync(m => m.Id == id);
+
+        ////var movie = await _context.Movies.FindAsync(id);
 
         if (movie == null)
         {
@@ -143,7 +135,7 @@ public class MovieController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<MovieListModel>> CreateMovie([FromBody] MovieListModel newMovie)
+    public async Task<ActionResult<MovieListModel>> CreateMovie([FromForm] MovieListModel newMovie)
     {
         _context.Movies.Add(newMovie);
         await _context.SaveChangesAsync();
