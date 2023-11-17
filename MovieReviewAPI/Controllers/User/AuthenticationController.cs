@@ -33,50 +33,137 @@ namespace MovieReviewAPI.Controllers.User
             _configuration = configuration;
         }
 
+        //[HttpPost]
+        //[Route("registration")]
+        //public async Task<IActionResult> Register([FromForm] RegisterUser registerUser, string role)
+        //{
+        //    var userExist = await _userManager.FindByEmailAsync(registerUser.Email);
+        //    if (userExist != null)
+        //    {
+        //        return StatusCode(StatusCodes.Status403Forbidden,
+        //            new Response { Status = "Error", Message = "User already exists!" });
+        //    }
+
+        //    IdentityUser user = new()
+        //    {
+        //        Email = registerUser.Email,
+        //        SecurityStamp = Guid.NewGuid().ToString(),
+        //        UserName = registerUser.Username,
+        //        TwoFactorEnabled = false
+        //    };
+
+        //    if (await _roleManager.RoleExistsAsync(role))
+        //    {
+        //        var result = await _userManager.CreateAsync(user, registerUser.Password);
+        //        if (!result.Succeeded)
+        //        {
+        //            return StatusCode(StatusCodes.Status500InternalServerError,
+        //                new Response { Status = "Error", Message = "User Failed to Create" });
+        //        }
+
+        //        await _userManager.AddToRoleAsync(user, role);
+
+        //        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        //        var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { token, email = user.Email }, Request.Scheme);
+        //        var message = new Message(new string[] { user.Email! }, "Confirmation email link", confirmationLink!);
+        //        _emailService.SendEmail(message);
+
+        //        return StatusCode(StatusCodes.Status200OK,
+        //          new Response { Status = "Success", Message = $"User created & Email Sent to {user.Email} SuccessFully" });
+        //    }
+        //    else
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError,
+        //                new Response { Status = "Error", Message = "This Role Doesnot Exist." });
+        //    }
+        //}
+
+
         [HttpPost]
         [Route("registration")]
-        public async Task<IActionResult> Register([FromForm] RegisterUser registerUser, string role)
+        public async Task<IActionResult> Register([FromForm] RegisterUser registerUser,
+                                                [FromForm] ProfileImageModel profileImage,
+                                                string role)
         {
-            var userExist = await _userManager.FindByEmailAsync(registerUser.Email);
-            if (userExist != null)
+            try
             {
-                return StatusCode(StatusCodes.Status403Forbidden,
-                    new Response { Status = "Error", Message = "User already exists!" });
-            }
-
-            IdentityUser user = new()
-            {
-                Email = registerUser.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = registerUser.Username,
-                TwoFactorEnabled = false
-            };
-            
-            if (await _roleManager.RoleExistsAsync(role))
-            {
-                var result = await _userManager.CreateAsync(user, registerUser.Password);
-                if (!result.Succeeded)
+                // Check if the user already exists
+                var userExist = await _userManager.FindByEmailAsync(registerUser.Email);
+                if (userExist != null)
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError,
-                        new Response { Status = "Error", Message = "User Failed to Create" });
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                        new Response { Status = "Error", Message = "User already exists!" });
                 }
 
-                await _userManager.AddToRoleAsync(user, role);
+                // Create a new IdentityUser
+                var user = new IdentityUser
+                {
+                    Email = registerUser.Email,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    UserName = registerUser.Username,
+                    TwoFactorEnabled = false
+                };
 
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { token, email = user.Email }, Request.Scheme);
-                var message = new Message(new string[] { user.Email! }, "Confirmation email link", confirmationLink!);
-                _emailService.SendEmail(message);
+                // Check if the specified role exists
+                if (await _roleManager.RoleExistsAsync(role))
+                {
+                    // Create the user with the specified password
+                    var result = await _userManager.CreateAsync(user, registerUser.Password);
+                    if (!result.Succeeded)
+                    {
+                        return StatusCode(StatusCodes.Status500InternalServerError,
+                            new Response { Status = "Error", Message = "User Failed to Create" });
+                    }
 
-                return StatusCode(StatusCodes.Status200OK,
-                  new Response { Status = "Success", Message = $"User created & Email Sent to {user.Email} SuccessFully" });
+                    // Add the user to the specified role
+                    await _userManager.AddToRoleAsync(user, role);
+
+                    // Process the image file
+                    if (profileImage != null && profileImage.ImageFile != null)
+                    {
+                        // Specify the directory path where you want to save the profile images
+                        var imageDirectory = Path.Combine("wwwroot", "profile_images");
+
+                        // Check if the directory exists, create it if not
+                        if (!Directory.Exists(imageDirectory))
+                        {
+                            Directory.CreateDirectory(imageDirectory);
+                        }
+
+                        // Save the image to the specified directory
+                        var imageName = $"{Guid.NewGuid()}_{profileImage.ImageFile.FileName}";
+                        var imagePath = Path.Combine(imageDirectory, imageName);
+
+                        using (var stream = new FileStream(imagePath, FileMode.Create))
+                        {
+                            await profileImage.ImageFile.CopyToAsync(stream);
+                        }
+
+                        // You can associate the image path with the user or perform additional processing
+                    }
+
+                    // Send confirmation email
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { token, email = user.Email }, Request.Scheme);
+                    var message = new Message(new string[] { user.Email! }, "Confirmation email link", confirmationLink!);
+                    _emailService.SendEmail(message);
+
+                    return StatusCode(StatusCodes.Status200OK,
+                        new Response { Status = "Success", Message = $"User created & Email Sent to {user.Email} SuccessFully" });
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                            new Response { Status = "Error", Message = "This Role Does not Exist." });
+                }
             }
-            else
+            catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                        new Response { Status = "Error", Message = "This Role Doesnot Exist." });
+                    new Response { Status = "Error", Message = $"Exception: {ex.Message}" });
             }
         }
+
 
         [HttpPost]
         [Route("enable-2FA")]
