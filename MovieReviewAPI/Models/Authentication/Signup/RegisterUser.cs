@@ -1,16 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations;
-
 namespace MovieReviewAPI.Models.Authentication.Signup
 {
     public class RegisterUser
     {
-        [Required]
+        [Required(ErrorMessage = "User name is required")]
         public string Username { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Email is required")]
         public string Email { get; set; }
 
-        [Required]
+        [Required(ErrorMessage ="Password is required")]
         public string Password { get; set; }
     }
 }
