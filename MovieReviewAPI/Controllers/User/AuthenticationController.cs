@@ -33,6 +33,7 @@ namespace MovieReviewAPI.Controllers.User
             _configuration = configuration;
         }
 
+        //Create User or Admin without profile photo
         //[HttpPost]
         //[Route("registration")]
         //public async Task<IActionResult> Register([FromForm] RegisterUser registerUser, string role)
@@ -79,6 +80,7 @@ namespace MovieReviewAPI.Controllers.User
         //}
 
 
+        //Crate new user or admin with Profile photo
         [HttpPost]
         [Route("registration")]
         public async Task<IActionResult> Register([FromForm] RegisterUser registerUser,
@@ -165,6 +167,7 @@ namespace MovieReviewAPI.Controllers.User
         }
 
 
+        //Enable Two step authentication
         [HttpPost]
         [Route("enable-2FA")]
         public async Task<IActionResult> EnableTwoFactorAuthentication([FromForm] LoginModel model)
@@ -213,7 +216,7 @@ namespace MovieReviewAPI.Controllers.User
             });
         }
 
-
+        //Confirm mail by clicking on the mail 
         [HttpGet("ConfirmEmail")]
         public async Task<IActionResult> ConfirmEmail(string token, string email)
         {
@@ -230,6 +233,9 @@ namespace MovieReviewAPI.Controllers.User
             return StatusCode(StatusCodes.Status500InternalServerError,
                        new Response { Status = "Error", Message = "This User Doesnot exist!" });
         }
+
+
+        //Login using credentials
         [HttpPost]
         [Route("login")]
         public async Task<IActionResult> Login([FromForm] LoginModel loginModel)
@@ -246,7 +252,7 @@ namespace MovieReviewAPI.Controllers.User
                     _emailService.SendEmail(message);
 
                     return StatusCode(StatusCodes.Status200OK,
-                        new Response { Status = "Success", Message = $"We have sent an OTP to your Email {user.Email}" });
+                        new Response { Status = "Success", Message = $"We have sent an OTP to your Email {user.Email} and OTP is {token}" });
                 }
 
                 if (await _userManager.CheckPasswordAsync(user, loginModel.Password))
@@ -276,44 +282,8 @@ namespace MovieReviewAPI.Controllers.User
             return Unauthorized();
         }
 
-        [HttpPost]
-        [Route("login-2FA")]
-        public async Task<IActionResult> LoginWithOTP([FromForm] LoginModel loginModel, string code)
-        {
-            var user = await _userManager.FindByNameAsync(loginModel.Username);
 
-            if (user != null)
-            {
-                var signIn = await _signInManager.TwoFactorSignInAsync("Email", code, false, false);
-
-                if (signIn.Succeeded)
-                {
-                    var authClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            };
-
-                    var userRoles = await _userManager.GetRolesAsync(user);
-                    foreach (var role in userRoles)
-                    {
-                        authClaims.Add(new Claim(ClaimTypes.Role, role));
-                    }
-
-                    var jwtToken = GetToken(authClaims);
-
-                    return Ok(new
-                    {
-                        token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
-                        expiration = jwtToken.ValidTo
-                    });
-                }
-            }
-
-            return StatusCode(StatusCodes.Status404NotFound,
-                new Response { Status = "Error", Message = "Invalid Code" });
-        }
-
+        //JWT settings
         private JwtSecurityToken GetToken(List<Claim> authClaims)
         {
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
