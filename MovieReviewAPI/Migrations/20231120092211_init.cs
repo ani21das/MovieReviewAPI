@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -7,7 +8,7 @@
 namespace MovieReviewAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class initMovie : Migration
+    public partial class init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -29,6 +30,30 @@ namespace MovieReviewAPI.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Movies", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Reviews",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    MovieId = table.Column<int>(type: "int", nullable: true),
+                    Comment = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Recommended = table.Column<bool>(type: "bit", nullable: false),
+                    MovieName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    MovieListModelId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Reviews", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Reviews_Movies_MovieListModelId",
+                        column: x => x.MovieListModelId,
+                        principalTable: "Movies",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.InsertData(
@@ -77,11 +102,19 @@ namespace MovieReviewAPI.Migrations
                     { 39, "India", "After his wealthy family prohibits him from marrying the woman he is in love with, Devdas Mukherjee's life spirals further and further out of control as he takes up alcohol and a life of vice to numb the pain.", "Drama, Musical, Romance", "Hindi", "Devdas", 7.5999999999999996, 2002 },
                     { 40, "India", "In the 1970s, Om, an aspiring actor, is murdered, but is immediately reincarnated into the present day. He attempts to discover the mystery of his demise and find Shanti, the love of his previous life.", "Action, Comedy, Drama", "Hindi", "Om Shanti Om", 6.7000000000000002, 2007 }
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reviews_MovieListModelId",
+                table: "Reviews",
+                column: "MovieListModelId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Reviews");
+
             migrationBuilder.DropTable(
                 name: "Movies");
         }

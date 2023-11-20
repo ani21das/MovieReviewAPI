@@ -12,7 +12,6 @@ namespace MovieReviewAPI.Data.MovieContext
         public DbSet<MovieListModel> Movies { get; set; }
         public DbSet<ReviewModel> Reviews { get; set; }
 
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<MovieListModel>().HasData(

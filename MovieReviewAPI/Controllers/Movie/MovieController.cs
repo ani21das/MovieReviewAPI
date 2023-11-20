@@ -5,7 +5,6 @@ using MovieReviewAPI.Data.MovieContext;
 using MovieReviewAPI.Models.MovieList;
 using Newtonsoft.Json;
 using OfficeOpenXml;
-using OfficeOpenXml.Style;
 
 [Route("api/movies")]
 [ApiController]
@@ -191,48 +190,5 @@ public class MovieController : ControllerBase
 
         return movie;
     }
-
-
-    
-    [HttpGet("export-excel")]
-    [Authorize(Roles = "User")]
-    public async Task<IActionResult> ExportMoviesToExcel()
-    {
-        var movies = await _context.Movies.ToListAsync();
-
-        // Create a new Excel package
-        using (var package = new ExcelPackage())
-        {
-            // Add a worksheet to the package
-            var worksheet = package.Workbook.Worksheets.Add("MovieList");
-
-            // Set headers
-            var headers = new string[] { "ID", "Name", "Description", "ReleaseYear", "Rating", "Genre", "Country", "Language" };
-            for (var i = 0; i < headers.Length; i++)
-            {
-                worksheet.Cells[1, i + 1].Value = headers[i];
-            }
-
-            // Populate data
-            for (var row = 0; row < movies.Count; row++)
-            {
-                worksheet.Cells[row + 2, 1].Value = movies[row].Id;
-                worksheet.Cells[row + 2, 2].Value = movies[row].Name;
-                worksheet.Cells[row + 2, 3].Value = movies[row].Description;
-                worksheet.Cells[row + 2, 4].Value = movies[row].ReleaseYear;
-                worksheet.Cells[row + 2, 5].Value = movies[row].Rating;
-                worksheet.Cells[row + 2, 6].Value = movies[row].Genre;
-                worksheet.Cells[row + 2, 7].Value = movies[row].Country;
-                worksheet.Cells[row + 2, 8].Value = movies[row].Language;
-            }
-
-            // Auto-fit columns for better readability
-            worksheet.Cells.AutoFitColumns();
-
-            // Set the content type and return the Excel file
-            var content = package.GetAsByteArray();
-            return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "MovieList.xlsx");
-        }
-    }
-
 }
+

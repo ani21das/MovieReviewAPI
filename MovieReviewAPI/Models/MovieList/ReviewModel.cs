@@ -7,7 +7,7 @@ public class ReviewModel
     [OpenApiIgnore]
     public int? Id { get; set; }
     [OpenApiIgnore]
-    public string? UserName { get; set; }
+    public string UserName { get; set; }
     [OpenApiIgnore]
     public int? MovieId { get; set; }
     [Required]
