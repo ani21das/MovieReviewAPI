@@ -9,7 +9,7 @@ namespace MovieReviewAPI.Controllers.Movie
 {
     [Route("api/[controller]")]
     [ApiController]
-
+    [Authorize]
     public class MovieListImportExportController : ControllerBase
     {
         private readonly ApplicationDBContext _context;

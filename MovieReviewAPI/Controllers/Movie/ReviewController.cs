@@ -47,6 +47,7 @@ namespace MovieReviewAPI.Controllers.Movie
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "User")]
         public async Task<ActionResult<ReviewModel>> GetReviewByMovieId(int id)
         {
             var reviews = await _context.Reviews
@@ -62,6 +63,7 @@ namespace MovieReviewAPI.Controllers.Movie
         }
 
         [HttpGet]
+        [Authorize(Roles = "User")]
         public async Task<ActionResult<IEnumerable<ReviewModel>>> GetAllReviews()
         {
             var reviews = await _context.Reviews.ToListAsync();
@@ -70,6 +72,7 @@ namespace MovieReviewAPI.Controllers.Movie
         }
 
         [HttpGet("filter")]
+        [Authorize(Roles = "User")]
         public async Task<ActionResult<IEnumerable<ReviewModel>>> GetFilteredReviews(
             [FromQuery] string MovieName,
             [FromQuery] string UserName,
@@ -106,5 +109,43 @@ namespace MovieReviewAPI.Controllers.Movie
 
             return Ok(filteredReviews);
         }
+
+        [HttpGet("reviews/groupby/movieAll")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<IEnumerable<object>>> GroupReviewsByMovieAll()
+        {
+            var groupedReviewsByMovie = await _context.Reviews
+                .GroupBy(r => new { r.MovieName })
+                .Select(group => new
+                {
+                    group.Key.MovieName,
+                    Reviews = group.ToList()
+                })
+                .ToListAsync();
+
+            return Ok(groupedReviewsByMovie);
+        }
+
+        [HttpGet("reviews/groupby/movie")]
+        [Authorize(Roles = "User")]
+        public async Task<ActionResult<IEnumerable<object>>> GroupReviewsByMovie()
+        {
+            var groupedReviewsByMovie = await _context.Reviews
+                .GroupBy(r => new { r.MovieName })
+                .Select(group => new
+                {
+                    group.Key.MovieName,
+                    Reviews = group.Select(r => new
+                    {
+                        r.UserName,
+                        r.Recommended,
+                        r.Comment                        
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(groupedReviewsByMovie);
+        }
+
     }
 }

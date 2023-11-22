@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using MovieReviewAPI.Data.MovieContext;
 using MovieReviewAPI.Models.MovieList;
 using Newtonsoft.Json;
-using OfficeOpenXml;
 
 [Route("api/movies")]
 [ApiController]
@@ -174,6 +173,7 @@ public class MovieController : ControllerBase
         return NoContent();
     }
 
+
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<MovieListModel>> DeleteMovie(int id)
@@ -189,6 +189,86 @@ public class MovieController : ControllerBase
         await _context.SaveChangesAsync();
 
         return movie;
+    }
+
+    [HttpGet("movies/groupby/genre")]
+    public async Task<ActionResult<IEnumerable<object>>> GroupMoviesByGenre()
+    {
+        var groupedMovies = await _context.Movies
+            .GroupBy(m => m.Genre)
+            .Select(group => new
+            {
+                Genre = group.Key,
+                MovieCount = group.Count()
+            })
+            .ToListAsync();
+
+        return Ok(groupedMovies);
+    }
+
+    [HttpGet("movies/groupby")]
+    public async Task<ActionResult<IEnumerable<object>>> GroupMoviesBy(
+    [FromQuery] string groupBy)
+    {
+        IQueryable<MovieListModel> query = _context.Movies.Include(m => m.Reviews);
+
+        if (!string.IsNullOrEmpty(groupBy))
+        {
+            switch (groupBy.ToLower())
+            {
+                case "genre":
+                    var groupedMoviesByGenre = await query
+                        .GroupBy(m => m.Genre)
+                        .Select(group => new
+                        {
+                            GroupKey = group.Key,
+                            MovieCount = group.Count(),
+                            AverageRating = group.Average(m => m.Rating)
+                        })
+                        .ToListAsync();
+                    return Ok(groupedMoviesByGenre);
+
+                case "releaseyear":
+                    var groupedMoviesByReleaseYear = await query
+                        .GroupBy(m => m.ReleaseYear)
+                        .Select(group => new
+                        {
+                            GroupKey = group.Key,
+                            MovieCount = group.Count(),
+                            MaxRating = group.Max(m => m.Rating)
+                        })
+                        .ToListAsync();
+                    return Ok(groupedMoviesByReleaseYear);
+
+                case "country":
+                    var groupedMoviesByCountry = await query
+                        .GroupBy(m => m.Country)
+                        .Select(group => new
+                        {
+                            GroupKey = group.Key,
+                            MovieCount = group.Count(),
+                            AverageRating = group.Average(m => m.Rating)
+                        })
+                        .ToListAsync();
+                    return Ok(groupedMoviesByCountry);
+
+                case "language":
+                    var groupedMoviesByLanguage = await query
+                        .GroupBy(m => m.Language)
+                        .Select(group => new
+                        {
+                            GroupKey = group.Key,
+                            MovieCount = group.Count(),
+                            MinRating = group.Min(m => m.Rating)
+                        })
+                        .ToListAsync();
+                  
+                    return Ok(groupedMoviesByLanguage);
+                default:
+                    return BadRequest("Invalid groupBy parameter.");
+            }
+        }
+         return BadRequest("Please provide a valid groupBy parameter.");
     }
 }
 
