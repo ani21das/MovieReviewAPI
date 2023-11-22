@@ -12,8 +12,8 @@ using MovieReviewAPI.Data.MovieContext;
 namespace MovieReviewAPI.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20231120092211_init")]
-    partial class init
+    [Migration("20231121090923_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

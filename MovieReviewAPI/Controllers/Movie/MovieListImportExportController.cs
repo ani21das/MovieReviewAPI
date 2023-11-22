@@ -10,16 +10,17 @@ namespace MovieReviewAPI.Controllers.Movie
     [Route("api/[controller]")]
     [ApiController]
 
-    public class ImportExportController : ControllerBase
+    public class MovieListImportExportController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
 
-        public ImportExportController(ApplicationDBContext context)
+        public MovieListImportExportController(ApplicationDBContext context)
         {
             _context = context;
         }
 
         [HttpGet("export-excel")]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> ExportsMoviesToExcel()
         {
             var movies = await _context.Movies.ToListAsync();
@@ -54,6 +55,7 @@ namespace MovieReviewAPI.Controllers.Movie
         }
 
         [HttpPost("import-excel")]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> ImportMoviesFromExcel(IFormFile file)
         {
             if (file == null || file.Length == 0)

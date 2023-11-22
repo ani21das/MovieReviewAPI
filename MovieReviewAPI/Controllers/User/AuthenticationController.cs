@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MovieReviewAPI.Models.Authentication;
 using MovieReviewAPI.Models.Authentication.Login;
@@ -33,54 +34,6 @@ namespace MovieReviewAPI.Controllers.User
             _configuration = configuration;
         }
 
-        //Create User or Admin without profile photo
-        //[HttpPost]
-        //[Route("registration")]
-        //public async Task<IActionResult> Register([FromForm] RegisterUser registerUser, string role)
-        //{
-        //    var userExist = await _userManager.FindByEmailAsync(registerUser.Email);
-        //    if (userExist != null)
-        //    {
-        //        return StatusCode(StatusCodes.Status403Forbidden,
-        //            new Response { Status = "Error", Message = "User already exists!" });
-        //    }
-
-        //    IdentityUser user = new()
-        //    {
-        //        Email = registerUser.Email,
-        //        SecurityStamp = Guid.NewGuid().ToString(),
-        //        UserName = registerUser.Username,
-        //        TwoFactorEnabled = false
-        //    };
-
-        //    if (await _roleManager.RoleExistsAsync(role))
-        //    {
-        //        var result = await _userManager.CreateAsync(user, registerUser.Password);
-        //        if (!result.Succeeded)
-        //        {
-        //            return StatusCode(StatusCodes.Status500InternalServerError,
-        //                new Response { Status = "Error", Message = "User Failed to Create" });
-        //        }
-
-        //        await _userManager.AddToRoleAsync(user, role);
-
-        //        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        //        var confirmationLink = Url.Action(nameof(ConfirmEmail), "Authentication", new { token, email = user.Email }, Request.Scheme);
-        //        var message = new Message(new string[] { user.Email! }, "Confirmation email link", confirmationLink!);
-        //        _emailService.SendEmail(message);
-
-        //        return StatusCode(StatusCodes.Status200OK,
-        //          new Response { Status = "Success", Message = $"User created & Email Sent to {user.Email} SuccessFully" });
-        //    }
-        //    else
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError,
-        //                new Response { Status = "Error", Message = "This Role Doesnot Exist." });
-        //    }
-        //}
-
-
-        //Crate new user or admin with Profile photo
         [HttpPost]
         [Route("registration")]
         public async Task<IActionResult> Register([FromForm] RegisterUser registerUser,
@@ -89,7 +42,6 @@ namespace MovieReviewAPI.Controllers.User
         {
             try
             {
-                // Check if the user already exists
                 var userExist = await _userManager.FindByEmailAsync(registerUser.Email);
                 if (userExist != null)
                 {
@@ -97,7 +49,6 @@ namespace MovieReviewAPI.Controllers.User
                         new Response { Status = "Error", Message = "User already exists!" });
                 }
 
-                // Create a new IdentityUser
                 var user = new IdentityUser
                 {
                     Email = registerUser.Email,
@@ -106,10 +57,8 @@ namespace MovieReviewAPI.Controllers.User
                     TwoFactorEnabled = false
                 };
 
-                // Check if the specified role exists
                 if (await _roleManager.RoleExistsAsync(role))
                 {
-                    // Create the user with the specified password
                     var result = await _userManager.CreateAsync(user, registerUser.Password);
                     if (!result.Succeeded)
                     {
@@ -117,22 +66,17 @@ namespace MovieReviewAPI.Controllers.User
                             new Response { Status = "Error", Message = "User Failed to Create" });
                     }
 
-                    // Add the user to the specified role
                     await _userManager.AddToRoleAsync(user, role);
 
-                    // Process the image file
                     if (profileImage != null && profileImage.ImageFile != null)
                     {
-                        // Specify the directory path where you want to save the profile images
                         var imageDirectory = Path.Combine("wwwroot", "profile_images");
 
-                        // Check if the directory exists, create it if not
                         if (!Directory.Exists(imageDirectory))
                         {
                             Directory.CreateDirectory(imageDirectory);
                         }
 
-                        // Save the image to the specified directory
                         var imageName = $"{Guid.NewGuid()}_{profileImage.ImageFile.FileName}";
                         var imagePath = Path.Combine(imageDirectory, imageName);
 
@@ -141,7 +85,6 @@ namespace MovieReviewAPI.Controllers.User
                             await profileImage.ImageFile.CopyToAsync(stream);
                         }
 
-                        // You can associate the image path with the user or perform additional processing
                     }
 
                     // Send confirmation email
@@ -165,8 +108,6 @@ namespace MovieReviewAPI.Controllers.User
                     new Response { Status = "Error", Message = $"Exception: {ex.Message}" });
             }
         }
-
-
         //Enable Two step authentication
         [HttpPost]
         [Route("enable-2FA")]
@@ -233,53 +174,104 @@ namespace MovieReviewAPI.Controllers.User
             return StatusCode(StatusCodes.Status500InternalServerError,
                        new Response { Status = "Error", Message = "This User Doesnot exist!" });
         }
-
-
-        //Login using credentials
+        // Regular login without OTP
         [HttpPost]
         [Route("login")]
         public async Task<IActionResult> Login([FromForm] LoginModel loginModel)
         {
-            var user = await _userManager.FindByNameAsync(loginModel.Username);
-
-            if (user != null)
+            try
             {
-                if (user.TwoFactorEnabled)
+                var user = await _userManager.FindByNameAsync(loginModel.Username);
+
+                if (user != null)
                 {
-                    var token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
-
-                    var message = new Message(new string[] { user.Email! }, "OTP Confirmation", token);
-                    _emailService.SendEmail(message);
-
-                    return StatusCode(StatusCodes.Status200OK,
-                        new Response { Status = "Success", Message = $"We have sent an OTP to your Email {user.Email} and OTP is {token}" });
-                }
-
-                if (await _userManager.CheckPasswordAsync(user, loginModel.Password))
-                {
-                    var authClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            };
-
-                    var userRoles = await _userManager.GetRolesAsync(user);
-                    foreach (var role in userRoles)
+                    if (user.TwoFactorEnabled)
                     {
-                        authClaims.Add(new Claim(ClaimTypes.Role, role));
+                        // Generate and send OTP to the user's email
+                        var otp = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+                        var message = new Message(new string[] { user.Email! }, "OTP Confirmation", otp);
+                        _emailService.SendEmail(message);
+
+                        return Ok(new { Message = $"We have sent an OTP to your Email {user.Email}." });
                     }
 
-                    var jwtToken = GetToken(authClaims);
-
-                    return Ok(new
+                    // Proceed with regular authentication
+                    if (await _userManager.CheckPasswordAsync(user, loginModel.Password))
                     {
-                        token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
-                        expiration = jwtToken.ValidTo
-                    });
-                }
-            }
+                        // Generate JWT token
+                        var authClaims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                };
 
-            return Unauthorized();
+                        var userRoles = await _userManager.GetRolesAsync(user);
+                        authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+                        var jwtToken = GetToken(authClaims);
+
+                        return Ok(new
+                        {
+                            token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
+                            expiration = jwtToken.ValidTo
+                        });
+                    }
+                }
+
+                return Unauthorized(new { Message = "Invalid username or password." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Internal Server Error." });
+            }
+        }
+
+        // 2FA login with OTP
+        [HttpPost]
+        [Route("login-2fa")]
+        public async Task<IActionResult> Login2FA([FromForm] LoginModel loginModel, [FromForm] string otp)
+        {
+            try
+            {
+                var user = await _userManager.FindByNameAsync(loginModel.Username);
+
+                if (user != null && user.TwoFactorEnabled)
+                {
+                    // Verify the submitted OTP
+                    var isOtpValid = await _userManager.VerifyTwoFactorTokenAsync(user, "Email", otp);
+
+                    if (isOtpValid)
+                    {
+                        // Proceed with authenticating the user and generating JWT
+                        var authClaims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                };
+
+                        var userRoles = await _userManager.GetRolesAsync(user);
+                        authClaims.AddRange(userRoles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+                        var jwtToken = GetToken(authClaims);
+
+                        return Ok(new
+                        {
+                            token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
+                            expiration = jwtToken.ValidTo
+                        });
+                    }
+
+                    return BadRequest(new { Message = "Invalid OTP." });
+                }
+
+                return BadRequest(new { Message = "2FA is not enabled for this user." });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Internal Server Error." });
+            }
         }
 
 

@@ -16,7 +16,7 @@ var configuration = builder.Configuration;
 builder.Services.AddDbContext<ApplicationDBContext>(options => options.UseSqlServer(configuration.GetConnectionString("ApplicationConnection")));
 
 // For Entity Framework - User
-builder.Services.AddDbContext<UserDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("UserConnection")));
+builder.Services.AddDbContext<UserDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("ApplicationConnection")));
 
 // For Identity - User
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
