@@ -1,13 +1,19 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using MovieReviewAPI.Data.MovieContext;
-using MovieReviewAPI.Data.UserContext;
+using System;
 using System.Text;
 using User.Services.Models;
 using User.Services.Services;
+using Hangfire;
+using Hangfire.SqlServer;
+using MovieReviewAPI.Data.MovieContext;
+using MovieReviewAPI.Data.UserContext;
+using MovieReviewAPI.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +56,23 @@ var emailConfig = configuration.GetSection("EmailConfiguration").Get<EmailConfig
 builder.Services.AddSingleton(emailConfig);
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Add Hangfire services
+builder.Services.AddHangfire(configuration =>
+{
+    // Use Configure method to access IConfiguration
+    configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
+        .UseSqlServerStorage(builder.Configuration.GetConnectionString("ApplicationConnection"), new SqlServerStorageOptions
+        {
+            // Configure options if needed
+        });
+});
+
+
+// Register services
+builder.Services.AddSingleton<BackgroundJobService>();
+
 // Add services to the container.
 builder.Services.AddControllers();
 
@@ -81,8 +104,10 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-
 var app = builder.Build();
+
+// Initialize Hangfire for sending background jobs
+app.UseHangfireDashboard();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
