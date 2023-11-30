@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MovieReviewAPI.Models.MovieList;
+using MovieReviewAPI.Models.PlayList;
 
 namespace MovieReviewAPI.Data.MovieContext
 {
@@ -11,6 +12,7 @@ namespace MovieReviewAPI.Data.MovieContext
 
         public DbSet<MovieListModel> Movies { get; set; }
         public DbSet<ReviewModel> Reviews { get; set; }
+        public DbSet<PlayListModel> PlayLists { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
